@@ -1,18 +1,29 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from app.schemas.transaction import PaySimulationRequest, TransactionOut, TransactionListResponse, TransactionSummaryOut
 from app.services import payment_service
 from app.repositories import transaction_repo
 from app.core.dependencies import get_current_merchant
+from app.services import webhook_service
 
 router = APIRouter(tags=["payments"])
 
 @router.post("/payment-links/{link_id}/pay", response_model=TransactionOut, status_code=201)
-def pay_payment_link(link_id: str, request: PaySimulationRequest):
+def pay_payment_link(link_id: str, request: PaySimulationRequest, background_tasks: BackgroundTasks):
     """
     Simulate paying a payment link (public endpoint).
     """
-    return payment_service.simulate_payment(link_id, request)
+    transaction = payment_service.simulate_payment(link_id, request)
+    event_type = "payment.success" if transaction["status"] == "success" else "payment.failed"
+    payload = TransactionOut(**transaction).model_dump(mode='json')
+    
+    background_tasks.add_task(
+        webhook_service.dispatch_event,
+        merchant_id=str(transaction["merchant_id"]),
+        event_type=event_type,
+        payload=payload
+    )
+    return transaction
 
 @router.get("/transactions", response_model=TransactionListResponse)
 def list_transactions(
