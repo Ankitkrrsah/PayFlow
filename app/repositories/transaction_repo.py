@@ -65,3 +65,66 @@ def list_transactions_by_link(payment_link_id: str, limit: int = 10, offset: int
     with get_cursor() as cursor:
         cursor.execute(query, (payment_link_id, limit, offset))
         return [_row_to_dict(row) for row in cursor.fetchall()]
+
+def list_transactions(
+    merchant_id: str,
+    status: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0
+) -> tuple[List[dict], int]:
+    conditions = ["merchant_id = %s"]
+    params = [merchant_id]
+
+    if status:
+        conditions.append("status = %s")
+        params.append(status)
+    if from_date:
+        conditions.append("created_at >= %s")
+        params.append(from_date)
+    if to_date:
+        conditions.append("created_at <= %s")
+        params.append(to_date)
+
+    where_clause = " AND ".join(conditions)
+    
+    # Query for total count
+    count_query = f"SELECT COUNT(*) FROM transactions WHERE {where_clause}"
+    
+    # Query for items
+    items_query = f"""
+        SELECT id, payment_link_id, merchant_id, amount, currency, status, payment_method, created_at
+        FROM transactions
+        WHERE {where_clause}
+        ORDER BY created_at DESC
+        LIMIT %s OFFSET %s
+    """
+    
+    with get_cursor() as cursor:
+        cursor.execute(count_query, tuple(params))
+        total = cursor.fetchone()[0]
+        
+        items_params = params + [limit, offset]
+        cursor.execute(items_query, tuple(items_params))
+        items = [_row_to_dict(row) for row in cursor.fetchall()]
+        
+    return items, total
+
+def get_transaction_summary(merchant_id: str) -> List[dict]:
+    query = """
+        SELECT status, COUNT(*) as total_count, SUM(amount) as total_amount
+        FROM transactions
+        WHERE merchant_id = %s
+        GROUP BY status
+    """
+    with get_cursor() as cursor:
+        cursor.execute(query, (merchant_id,))
+        results = []
+        for row in cursor.fetchall():
+            results.append({
+                "status": row[0],
+                "total_count": row[1],
+                "total_amount": row[2]
+            })
+        return results

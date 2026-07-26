@@ -17,3 +17,14 @@ class TransactionOut(BaseModel):
     status: str
     payment_method: Optional[str] = None
     created_at: datetime
+
+class TransactionListResponse(BaseModel):
+    items: list[TransactionOut]
+    total: int
+    limit: int
+    offset: int
+
+class TransactionSummaryOut(BaseModel):
+    status: str
+    total_count: int
+    total_amount: Decimal
