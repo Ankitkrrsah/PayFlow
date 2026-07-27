@@ -5,10 +5,11 @@ from app.services import payment_service
 from app.repositories import transaction_repo
 from app.core.dependencies import get_current_merchant
 from app.services import webhook_service
+from app.middleware.rate_limiter import rate_limit
 
 router = APIRouter(tags=["payments"])
 
-@router.post("/payment-links/{link_id}/pay", response_model=TransactionOut, status_code=201)
+@router.post("/payment-links/{link_id}/pay", response_model=TransactionOut, status_code=201, dependencies=[Depends(rate_limit(20, 60))])
 def pay_payment_link(link_id: str, request: PaySimulationRequest, background_tasks: BackgroundTasks):
     """
     Simulate paying a payment link (public endpoint).
@@ -25,7 +26,7 @@ def pay_payment_link(link_id: str, request: PaySimulationRequest, background_tas
     )
     return transaction
 
-@router.get("/transactions", response_model=TransactionListResponse)
+@router.get("/transactions", response_model=TransactionListResponse, dependencies=[Depends(rate_limit(100, 60))])
 def list_transactions(
     status: Optional[str] = Query(None),
     from_date: Optional[str] = Query(None),
@@ -52,7 +53,7 @@ def list_transactions(
         offset=offset
     )
 
-@router.get("/transactions/summary", response_model=List[TransactionSummaryOut])
+@router.get("/transactions/summary", response_model=List[TransactionSummaryOut], dependencies=[Depends(rate_limit(100, 60))])
 def get_transaction_summary(
     current_merchant: dict = Depends(get_current_merchant)
 ):
@@ -61,7 +62,7 @@ def get_transaction_summary(
     """
     return transaction_repo.get_transaction_summary(merchant_id=str(current_merchant["id"]))
 
-@router.get("/transactions/{transaction_id}", response_model=TransactionOut)
+@router.get("/transactions/{transaction_id}", response_model=TransactionOut, dependencies=[Depends(rate_limit(100, 60))])
 def get_transaction(
     transaction_id: str,
     current_merchant: dict = Depends(get_current_merchant)

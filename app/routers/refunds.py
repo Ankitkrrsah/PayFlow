@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, BackgroundTasks
 from app.schemas.refund import RefundCreate, RefundOut
 from app.services import refund_service, webhook_service
 from app.core.dependencies import get_current_merchant
+from app.middleware.rate_limiter import rate_limit
 
 router = APIRouter(prefix="/transactions/{transaction_id}/refunds", tags=["refunds"])
 
-@router.post("", response_model=RefundOut, status_code=201)
+@router.post("", response_model=RefundOut, status_code=201, dependencies=[Depends(rate_limit(100, 60))])
 def create_refund(
     transaction_id: str,
     refund_in: RefundCreate,
@@ -33,7 +34,7 @@ def create_refund(
     
     return refund
 
-@router.get("", response_model=List[RefundOut])
+@router.get("", response_model=List[RefundOut], dependencies=[Depends(rate_limit(100, 60))])
 def list_refunds(
     transaction_id: str,
     current_merchant: dict = Depends(get_current_merchant)
