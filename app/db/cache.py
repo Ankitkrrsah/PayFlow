@@ -28,7 +28,7 @@ def get_json(key: str) -> dict | None:
     try:
         val = redis_client.get(key)
         if val:
-            return json.loads(val)
+            return json.loads(val) #json.loads() converts a JSON string into the equivalent Python object.
         return None
     except Exception as e:
         logger.error(f"Redis get error: {e}")
@@ -36,8 +36,9 @@ def get_json(key: str) -> dict | None:
 
 def set_json(key: str, value: dict, ttl_seconds: int = 60) -> bool:
     try:
-        val_str = json.dumps(value, cls=CustomJSONEncoder)
-        return bool(redis_client.setex(key, ttl_seconds, val_str))
+        val_str = json.dumps(value, cls=CustomJSONEncoder) # converts list to str <class 'str'>
+        # json.dumps() converts a Python object into a JSON-formatted string.
+        return bool(redis_client.setex(key, ttl_seconds, val_str)) # setex means set with expiration time
     except Exception as e:
         logger.error(f"Redis set error: {e}")
         return False

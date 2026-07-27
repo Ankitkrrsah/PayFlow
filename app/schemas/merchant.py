@@ -1,10 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
 class MerchantCreate(BaseModel):
-    business_name: str
+    business_name: str = Field(..., min_length=1)
 
 class MerchantOut(BaseModel):
     id: UUID

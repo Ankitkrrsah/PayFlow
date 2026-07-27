@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 from app.schemas.user import UserSignup, UserLogin, UserOut, TokenResponse
 from app.services import auth_service
 from app.core.dependencies import get_current_user
@@ -7,7 +7,7 @@ from app.middleware.rate_limiter import rate_limit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/signup", response_model=UserOut, dependencies=[Depends(rate_limit(10, 60))])
+@router.post("/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(10, 60))])
 def signup(signup_data: UserSignup):
     return auth_service.signup(signup_data)
 

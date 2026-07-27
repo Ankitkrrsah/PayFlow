@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Literal
 from decimal import Decimal
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -6,7 +6,7 @@ from uuid import UUID
 
 class PaymentLinkCreate(BaseModel):
     amount: Decimal = Field(..., gt=0)
-    currency: str = Field(..., min_length=3, max_length=3)
+    currency: Literal["USD", "EUR", "GBP", "INR"]
     description: Optional[str] = None
     expires_in_minutes: Optional[int] = Field(None, gt=0)
 

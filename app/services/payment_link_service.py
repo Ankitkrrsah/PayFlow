@@ -53,7 +53,24 @@ def get_payment_link(link_id: str) -> Optional[dict]:
         # Let's ensure we can compare them
         if link["expires_at"].tzinfo is None:
             link["expires_at"] = link["expires_at"].replace(tzinfo=timezone.utc)
-            
+            """
+            Python does not allow comparing these:
+
+            naive > aware
+
+            You'll get
+
+            TypeError:
+            can't compare offset-naive and offset-aware datetimes
+
+            So they fix it.
+
+            link["expires_at"] = link["expires_at"].replace(
+                tzinfo=timezone.utc
+            )
+
+            This makes it timezone-aware.
+            """
         if datetime.now(timezone.utc) > link["expires_at"]:
             # Flip to expired
             link = payment_link_repo.update_payment_link_status(link_id, "expired")

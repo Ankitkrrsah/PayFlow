@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from app.schemas.webhook import WebhookCreate, WebhookOut
 from app.services import webhook_service
 from app.repositories import webhook_repo, webhook_log_repo
@@ -30,9 +30,11 @@ def list_webhooks(
 @router.get("/{webhook_id}/logs")
 def get_webhook_logs(
     webhook_id: str,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_merchant: dict = Depends(get_current_merchant)
 ):
     webhook = webhook_repo.get_webhook(webhook_id)
     if not webhook or str(webhook["merchant_id"]) != str(current_merchant["id"]):
         return []
-    return webhook_log_repo.list_webhook_logs(webhook_id)
+    return webhook_log_repo.list_webhook_logs(webhook_id, limit=limit, offset=offset)
